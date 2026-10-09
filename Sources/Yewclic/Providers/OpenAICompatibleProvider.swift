@@ -68,15 +68,15 @@ struct OpenAICompatibleProvider: LLMProvider {
         var messages: [[String: Any]] = [["role": "system", "content": request.systemPrompt]]
         messages += request.history.map { ["role": $0.role.rawValue, "content": $0.text] }
 
-        if let screenshot = request.screenshot {
-            let dataURL = "data:image/jpeg;base64," + screenshot.jpegData.base64EncodedString()
-            messages.append([
-                "role": "user",
-                "content": [
-                    ["type": "text", "text": request.userText],
-                    ["type": "image_url", "image_url": ["url": dataURL]],
-                ],
-            ])
+        if !request.screenshots.isEmpty {
+            var content: [[String: Any]] = []
+            for screenshot in request.screenshots {
+                let dataURL = "data:image/jpeg;base64," + screenshot.jpegData.base64EncodedString()
+                content.append(["type": "text", "text": screenshot.promptCaption])
+                content.append(["type": "image_url", "image_url": ["url": dataURL]])
+            }
+            content.append(["type": "text", "text": request.userText])
+            messages.append(["role": "user", "content": content])
         } else {
             messages.append(["role": "user", "content": request.userText])
         }

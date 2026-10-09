@@ -13,9 +13,9 @@ struct CompanionRequest {
     /// to keep requests small.
     var history: [ConversationTurn]
     var userText: String
-    /// nil when the provider is text-only (the OCR transcript is folded into
-    /// `userText` instead).
-    var screenshot: CapturedScreen?
+    /// Every connected display, cursor screen first. Empty when the provider
+    /// is text-only (the OCR transcript is folded into `userText` instead).
+    var screenshots: [CapturedScreen]
 }
 
 protocol LLMProvider {

@@ -59,7 +59,8 @@ struct AnthropicProvider: LLMProvider {
         }
 
         var currentContent: [[String: Any]] = []
-        if let screenshot = request.screenshot {
+        for screenshot in request.screenshots {
+            currentContent.append(["type": "text", "text": screenshot.promptCaption])
             currentContent.append([
                 "type": "image",
                 "source": [

@@ -20,20 +20,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let settings = AppSettings.shared
     private var statusItem: NSStatusItem?
     private var settingsWindow: NSWindow?
+    private let companionPopover = NSPopover()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.image = NSImage(systemSymbolName: "cursorarrow.rays", accessibilityDescription: "Yewclic")
-        let menu = NSMenu()
-        menu.delegate = self
-        item.menu = menu
+        item.button?.target = self
+        item.button?.action = #selector(toggleCompanionPanel)
         statusItem = item
+
+        // Clicky-style dark panel under the menu bar icon.
+        companionPopover.behavior = .transient
+        companionPopover.appearance = NSAppearance(named: .darkAqua)
+        companionPopover.contentViewController = NSHostingController(rootView: CompanionPanelView(
+            companion: companion,
+            settings: settings,
+            onOpenSettings: { [weak self] in
+                self?.companionPopover.performClose(nil)
+                self?.openSettings()
+            },
+            onNewConversation: { [weak self] in self?.companion.clearConversation() },
+            onQuit: { NSApp.terminate(nil) }
+        ))
 
         installMainMenu()
         companion.start()
 
         let needsSetup = !ScreenCapture.hasPermission || !PushToTalkMonitor.hasAccessibilityPermission || !MicrophonePermission.isGranted
         if needsSetup { openSettings() }
+    }
+
+    @objc private func toggleCompanionPanel() {
+        guard let button = statusItem?.button else { return }
+        if companionPopover.isShown {
+            companionPopover.performClose(nil)
+        } else {
+            // Pick up permissions granted since launch (upgrades the shortcut listener).
+            companion.pushToTalk.restartIfNeeded()
+            companionPopover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            companionPopover.contentViewController?.view.window?.makeKey()
+        }
     }
 
     // Clicking the Dock icon (with no windows open) brings up Settings.

@@ -3,11 +3,13 @@ import Security
 
 enum TranscriptionMode: String, CaseIterable, Codable, Identifiable {
     case appleOnDevice
+    case assemblyAIStreaming
     case whisperUpload
     var id: String { rawValue }
     var displayName: String {
         switch self {
         case .appleOnDevice: return "Apple Speech (free, on-device)"
+        case .assemblyAIStreaming: return "AssemblyAI live streaming (fastest, what Clicky uses)"
         case .whisperUpload: return "Whisper-compatible API (OpenAI, Groq, local)"
         }
     }
@@ -32,6 +34,7 @@ enum SpeechMode: String, CaseIterable, Codable, Identifiable {
 /// Keychain accounts for secrets that aren't tied to a chat provider.
 enum SecretAccount {
     static let whisper = "speech-to-text"
+    static let assemblyAI = "assemblyai"
     static let textToSpeech = "text-to-speech"
 }
 
@@ -58,6 +61,10 @@ final class AppSettings: ObservableObject {
     /// How many previous question/answer pairs to send as context.
     @Published var rememberedTurnPairs: Int { didSet { save() } }
 
+    /// Keep the buddy next to the cursor all the time (Clicky's "Show Clicky").
+    /// When off it only appears while you're asking something.
+    @Published var alwaysShowBuddy: Bool { didSet { save() } }
+
     private init() {
         activeProvider = ProviderKind(rawValue: defaults.string(forKey: "activeProvider") ?? "") ?? .anthropic
         if let data = defaults.data(forKey: "providerSettings"),
@@ -75,6 +82,7 @@ final class AppSettings: ObservableObject {
         remoteSpeechModel = defaults.string(forKey: "remoteSpeechModel") ?? "gpt-4o-mini-tts"
         remoteSpeechVoice = defaults.string(forKey: "remoteSpeechVoice") ?? "alloy"
         rememberedTurnPairs = defaults.object(forKey: "rememberedTurnPairs") as? Int ?? 6
+        alwaysShowBuddy = defaults.object(forKey: "alwaysShowBuddy") as? Bool ?? false
     }
 
     func settings(for kind: ProviderKind) -> ProviderSettings {
@@ -107,6 +115,7 @@ final class AppSettings: ObservableObject {
         defaults.set(remoteSpeechModel, forKey: "remoteSpeechModel")
         defaults.set(remoteSpeechVoice, forKey: "remoteSpeechVoice")
         defaults.set(rememberedTurnPairs, forKey: "rememberedTurnPairs")
+        defaults.set(alwaysShowBuddy, forKey: "alwaysShowBuddy")
     }
 }
 

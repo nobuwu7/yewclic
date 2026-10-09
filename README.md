@@ -2,7 +2,26 @@
 
 A little AI buddy that lives next to your cursor on macOS. Hold **⌃⌥ (Control + Option)**, ask a question out loud, let go. Yewclic looks at your screen, answers out loud, and can fly over to point at the button you need.
 
-It's an open re-build of the idea behind [Clicky](https://www.heyclicky.com/) ([MIT source](https://github.com/farzaa/clicky)), with one big difference: **you pick the brain.**
+It combines the best of [Clicky](https://www.heyclicky.com/) ([MIT source](https://github.com/farzaa/clicky)) with one big difference: **you pick the brain.**
+
+### What came from Clicky
+
+- The glowing triangle buddy, its listening waveform and thinking spinner
+- The curved "swoop" flight to whatever it's pointing at (it turns to face where it's going)
+- Multi-monitor screenshots, with `[POINT:x,y:label:screen2]` to point on another display
+- The listen-only event tap for a reliable ⌃⌥ shortcut
+- Its well-tuned spoken-answer prompt (casual, short, ends by "planting a seed")
+- AssemblyAI live streaming transcription
+- A dark menu bar panel and the "always show buddy" option
+
+### What yewclic adds
+
+- Switch between 12 AI providers, including Claude Code, Ollama and other local models
+- No server to run: keys live in your Keychain and calls go straight to the provider
+- Free/offline voice options, plus Whisper-style APIs and ElevenLabs
+- On-device OCR so text-only models can still see and point
+- Up to three pointing steps in order
+- One-command build, no Xcode project
 
 ## Providers
 
@@ -28,7 +47,7 @@ The default model names are only starting points. Use **Fetch models** in Settin
 
 ## Voice
 
-- **Listening:** Apple Speech (free, on-device) or any Whisper-style `/audio/transcriptions` API (Groq, OpenAI, a local whisper server).
+- **Listening:** Apple Speech (free, on-device), AssemblyAI live streaming (fastest), or any Whisper-style `/audio/transcriptions` API (Groq, OpenAI, a local whisper server).
 - **Talking:** the built-in macOS voice (free, offline), any OpenAI-compatible `/audio/speech` API, ElevenLabs, or off.
 
 A fully local, free setup: **Ollama + Apple Speech + macOS voice.**
@@ -66,13 +85,14 @@ release ──► transcribe ──► provider (screenshot or OCR text + questi
 | `Screen/ScreenCapture.swift` | ScreenCaptureKit screenshot + pixel → screen coordinate mapping |
 | `Screen/ScreenTextReader.swift` | On-device OCR for text-only models |
 | `Voice/` | Shortcut monitor, speech-to-text engines, text-to-speech engines |
-| `Overlay/BuddyOverlay.swift` | The click-through cursor buddy and speech bubble |
+| `Overlay/BuddyOverlay.swift` | The click-through cursor buddy, flight animation and speech bubble |
+| `UI/CompanionPanelView.swift` | The panel under the menu bar icon |
 | `UI/SettingsView.swift` | Settings window |
 
 ## Not (yet) included
 
-Clicky's paid "agent" mode (doing tasks for you), dictation into other apps, multi-monitor screenshots in one request, and a rebindable shortcut.
+Clicky's paid "agent" mode (doing tasks for you), dictation into other apps, Clicky's Claude-only precise pointing (Computer Use), its onboarding video, analytics and auto-updates, and a rebindable shortcut.
 
 ## License
 
-MIT. Inspired by Clicky by Farza Majeed (MIT).
+MIT. Portions adapted from [Clicky](https://github.com/farzaa/clicky) by Farza Majeed, MIT licensed (see `LICENSE`).

@@ -144,7 +144,7 @@ struct BrainSettingsView: View {
         Task {
             do {
                 let request = CompanionRequest(systemPrompt: "Reply with one short sentence.", history: [],
-                                               userText: "Say hi and tell me which model you are.", screenshot: nil)
+                                               userText: "Say hi and tell me which model you are.", screenshots: [])
                 var reply = ""
                 for try await chunk in settings.makeActiveProvider().streamReply(to: request) { reply += chunk }
                 statusMessage = "✓ \(reply.trimmingCharacters(in: .whitespacesAndNewlines))"
@@ -161,6 +161,7 @@ struct BrainSettingsView: View {
 struct VoiceSettingsView: View {
     @ObservedObject var settings: AppSettings
     @State private var whisperKeyDraft = ""
+    @State private var assemblyAIKeyDraft = ""
     @State private var speechKeyDraft = ""
 
     var body: some View {
@@ -168,6 +169,13 @@ struct VoiceSettingsView: View {
             Section("Listening (speech to text)") {
                 Picker("Engine", selection: $settings.transcriptionMode) {
                     ForEach(TranscriptionMode.allCases) { Text($0.displayName).tag($0) }
+                }
+                if settings.transcriptionMode == .assemblyAIStreaming {
+                    SecureField("AssemblyAI API key", text: $assemblyAIKeyDraft)
+                        .onSubmit { Keychain.write(account: SecretAccount.assemblyAI, value: assemblyAIKeyDraft) }
+                    Button("Save key") { Keychain.write(account: SecretAccount.assemblyAI, value: assemblyAIKeyDraft) }
+                    Text("Words are transcribed while you talk, so replies start sooner. Paid, with free credits for new accounts.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 if settings.transcriptionMode == .whisperUpload {
                     TextField("Base URL", text: $settings.whisperBaseURL)
@@ -206,13 +214,15 @@ struct VoiceSettingsView: View {
                 }
             }
 
-            Section("Memory") {
+            Section("Buddy") {
+                Toggle("Always show the buddy next to my cursor", isOn: $settings.alwaysShowBuddy)
                 Stepper("Remember last \(settings.rememberedTurnPairs) exchanges", value: $settings.rememberedTurnPairs, in: 0...20)
             }
         }
         .formStyle(.grouped)
         .onAppear {
             whisperKeyDraft = Keychain.read(account: SecretAccount.whisper) ?? ""
+            assemblyAIKeyDraft = Keychain.read(account: SecretAccount.assemblyAI) ?? ""
             speechKeyDraft = Keychain.read(account: SecretAccount.textToSpeech) ?? ""
         }
     }

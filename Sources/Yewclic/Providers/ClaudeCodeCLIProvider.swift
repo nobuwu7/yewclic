@@ -39,10 +39,14 @@ struct ClaudeCodeCLIProvider: LLMProvider {
                 }
                 prompt += "\n"
             }
-            if let screenshot = request.screenshot {
-                let screenshotURL = workingDirectory.appendingPathComponent("screen-\(UUID().uuidString).jpg")
-                try? screenshot.jpegData.write(to: screenshotURL)
-                prompt += "First use the Read tool to look at the user's current screen: \(screenshotURL.path)\n\n"
+            if !request.screenshots.isEmpty {
+                prompt += "First use the Read tool to look at the user's screens:\n"
+                for screenshot in request.screenshots {
+                    let screenshotURL = workingDirectory.appendingPathComponent("screen\(screenshot.screenNumber)-\(UUID().uuidString).jpg")
+                    try? screenshot.jpegData.write(to: screenshotURL)
+                    prompt += "- \(screenshotURL.path) \(screenshot.promptCaption)\n"
+                }
+                prompt += "\n"
             }
             prompt += request.userText
 

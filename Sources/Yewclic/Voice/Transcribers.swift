@@ -19,7 +19,7 @@ enum MicrophonePermission {
     }
 }
 
-private func rootMeanSquareLevel(of buffer: AVAudioPCMBuffer) -> Float {
+func rootMeanSquareLevel(of buffer: AVAudioPCMBuffer) -> Float {
     guard let channelData = buffer.floatChannelData?[0], buffer.frameLength > 0 else { return 0 }
     var sumOfSquares: Float = 0
     for frameIndex in 0..<Int(buffer.frameLength) {
