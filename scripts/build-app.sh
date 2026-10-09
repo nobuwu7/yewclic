@@ -24,7 +24,10 @@ rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp "$BIN_PATH" "$APP_DIR/Contents/MacOS/Yewclic"
 cp Resources/Info.plist "$APP_DIR/Contents/Info.plist"
+cp Resources/AppIcon.icns "$APP_DIR/Contents/Resources/AppIcon.icns"
 
+# iCloud Drive attaches extended attributes that codesign rejects.
+xattr -cr "$APP_DIR"
 codesign --force --deep --sign "${SIGN_IDENTITY:--}" "$APP_DIR"
 echo "Built $APP_DIR"
 echo "Run it with: open $APP_DIR"

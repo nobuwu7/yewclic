@@ -18,8 +18,8 @@
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.2</string>
-    <key>LSUIElement</key>
-    <true/>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Yewclic listens while you hold the push-to-talk shortcut.</string>
     <key>NSSpeechRecognitionUsageDescription</key>

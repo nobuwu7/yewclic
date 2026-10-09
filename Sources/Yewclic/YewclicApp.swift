@@ -8,8 +8,8 @@ enum YewclicMain {
         let application = NSApplication.shared
         let delegate = AppDelegate()
         application.delegate = delegate
-        // Menu-bar only: no Dock icon, no main window.
-        application.setActivationPolicy(.accessory)
+        // Shows in the Dock and the menu bar. Clicking the Dock icon opens Settings.
+        application.setActivationPolicy(.regular)
         application.run()
     }
 }
@@ -29,10 +29,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.menu = menu
         statusItem = item
 
+        installMainMenu()
         companion.start()
 
         let needsSetup = !ScreenCapture.hasPermission || !PushToTalkMonitor.hasAccessibilityPermission || !MicrophonePermission.isGranted
         if needsSetup { openSettings() }
+    }
+
+    // Clicking the Dock icon (with no windows open) brings up Settings.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows { openSettings() }
+        return true
+    }
+
+    // Closing Settings shouldn't quit the app; the buddy keeps running.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    // Right-clicking the Dock icon shows the same provider switcher as the menu bar.
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let dockMenu = NSMenu()
+        menuNeedsUpdate(dockMenu)
+        // The Dock adds its own Quit item.
+        if let quitItem = dockMenu.items.last, quitItem.action == #selector(quit) {
+            dockMenu.removeItem(quitItem)
+        }
+        return dockMenu
+    }
+
+    /// A regular (Dock) app needs a main menu so ⌘, ⌘W and ⌘Q work.
+    private func installMainMenu() {
+        let mainMenu = NSMenu()
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu()
+        addItem(to: appMenu, title: "Settings…", action: #selector(openSettings), key: ",")
+        appMenu.addItem(.separator())
+        appMenu.addItem(NSMenuItem(title: "Hide Yewclic", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
+        addItem(to: appMenu, title: "Quit Yewclic", action: #selector(quit), key: "q")
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+
+        let windowMenuItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "Window")
+        windowMenu.addItem(NSMenuItem(title: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w"))
+        windowMenu.addItem(NSMenuItem(title: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m"))
+        windowMenuItem.submenu = windowMenu
+        mainMenu.addItem(windowMenuItem)
+        NSApp.mainMenu = mainMenu
     }
 
     // Rebuild the menu each time it opens so the provider checkmark is current.
