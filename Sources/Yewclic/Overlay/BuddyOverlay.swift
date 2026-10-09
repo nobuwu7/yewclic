@@ -10,11 +10,10 @@ enum BuddyState: Equatable {
 }
 
 enum BuddyStyle {
-    /// Bright yew green, matching the app icon.
-    static let glow = Color(red: 0.24, green: 0.86, blue: 0.52)
+    /// The original glowing blue cursor.
+    static let glow = Color(red: 0.2, green: 0.55, blue: 1.0)
+    static let listeningGlow = Color.red
     static let errorGlow = Color.orange
-    /// Resting angle so the triangle reads as a cursor.
-    static let restingRotationDegrees = -35.0
     static let pointerPhrases = ["right here!", "this one!", "over here!", "click this!", "here it is!", "found it!"]
 }
 
@@ -24,7 +23,6 @@ enum BuddyStyle {
 final class BuddyOverlayModel: ObservableObject {
     @Published var state: BuddyState = .idle
     @Published var buddyPosition: CGPoint = .zero
-    @Published var rotationDegrees: Double = BuddyStyle.restingRotationDegrees
     @Published var flightScale: CGFloat = 1
     @Published var bubbleText: String = ""
     @Published var audioLevel: Float = 0
@@ -108,7 +106,6 @@ final class BuddyOverlayController {
                 y: panel.frame.maxY - target.screenPoint.y
             )
             await fly(to: localPoint)
-            model.rotationDegrees = BuddyStyle.restingRotationDegrees
             withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
                 model.pointingLabel = target.label.isEmpty ? (BuddyStyle.pointerPhrases.randomElement() ?? "right here!") : target.label
             }
@@ -123,11 +120,10 @@ final class BuddyOverlayController {
         } else {
             await fly(to: followPosition(for: NSEvent.mouseLocation))
         }
-        model.rotationDegrees = BuddyStyle.restingRotationDegrees
     }
 
-    /// Quadratic bezier flight with smoothstep easing. The triangle turns to
-    /// face where it's going and swells at the top of the arc.
+    /// Quadratic bezier flight with smoothstep easing. The cursor swells a
+    /// little at the top of the arc.
     private func fly(to destination: CGPoint) async {
         finishFlight()
         let start = model.buddyPosition
@@ -157,10 +153,6 @@ final class BuddyOverlayController {
                         x: inverse * inverse * start.x + 2 * inverse * t * control.x + t * t * destination.x,
                         y: inverse * inverse * start.y + 2 * inverse * t * control.y + t * t * destination.y
                     )
-                    let tangentX = 2 * inverse * (control.x - start.x) + 2 * t * (destination.x - control.x)
-                    let tangentY = 2 * inverse * (control.y - start.y) + 2 * t * (destination.y - control.y)
-                    // +90° because the triangle's tip points up at 0°.
-                    self.model.rotationDegrees = atan2(tangentY, tangentX) * 180 / .pi + 90
                     self.model.flightScale = 1 + sin(linear * .pi) * 0.3
                 }
             }
@@ -237,23 +229,8 @@ struct BuddyOverlayView: View {
         ZStack(alignment: .topLeading) {
             Color.clear
             if model.isVisible {
-                // All three looks stay in the tree and cross-fade, so the buddy
-                // never "pops" when its state changes.
-                BuddyTriangle()
-                    .fill(glow)
-                    .frame(width: 16, height: 16)
-                    .rotationEffect(.degrees(model.rotationDegrees))
-                    .shadow(color: glow, radius: 8 + (model.flightScale - 1) * 20)
+                BuddyCursor(state: model.state, audioLevel: model.audioLevel)
                     .scaleEffect(model.flightScale)
-                    .opacity(model.state == .listening || model.state == .thinking ? 0 : 1)
-                    .position(model.buddyPosition)
-
-                BuddyWaveform(audioLevel: CGFloat(model.audioLevel), color: glow)
-                    .opacity(model.state == .listening ? 1 : 0)
-                    .position(model.buddyPosition)
-
-                BuddySpinner(color: glow)
-                    .opacity(model.state == .thinking ? 1 : 0)
                     .position(model.buddyPosition)
 
                 if !model.pointingLabel.isEmpty {
@@ -284,60 +261,57 @@ struct BuddyOverlayView: View {
     }
 }
 
-struct BuddyTriangle: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let size = min(rect.width, rect.height)
-        let height = size * sqrt(3.0) / 2.0
-        path.move(to: CGPoint(x: rect.midX, y: rect.midY - height / 1.5))
-        path.addLine(to: CGPoint(x: rect.midX - size / 2, y: rect.midY + height / 3))
-        path.addLine(to: CGPoint(x: rect.midX + size / 2, y: rect.midY + height / 3))
-        path.closeSubpath()
-        return path
-    }
-}
+/// The glowing cursor arrow: a red pulse that grows with your voice while
+/// listening, a spinning ring while thinking, and a gentle bob while talking.
+struct BuddyCursor: View {
+    var state: BuddyState
+    var audioLevel: Float
+    @State private var isBobbing = false
 
-/// Five little bars that bounce with your voice.
-struct BuddyWaveform: View {
-    var audioLevel: CGFloat
-    var color: Color
-    private let barProfile: [CGFloat] = [0.4, 0.7, 1.0, 0.7, 0.4]
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 36.0)) { context in
-            HStack(spacing: 2) {
-                ForEach(0..<barProfile.count, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                        .fill(color)
-                        .frame(width: 2, height: barHeight(index: index, date: context.date))
-                }
-            }
-            .shadow(color: color.opacity(0.6), radius: 6)
+    private var tint: Color {
+        switch state {
+        case .listening: return BuddyStyle.listeningGlow
+        case .error: return BuddyStyle.errorGlow
+        default: return BuddyStyle.glow
         }
     }
 
-    private func barHeight(index: Int, date: Date) -> CGFloat {
-        let phase = CGFloat(date.timeIntervalSinceReferenceDate * 3.6) + CGFloat(index) * 0.35
-        let easedLevel = pow(min(max(audioLevel - 0.008, 0) * 2.85, 1), 0.76)
-        let idlePulse = (sin(phase) + 1) / 2 * 1.5
-        return 3 + easedLevel * 10 * barProfile[index] + idlePulse
+    var body: some View {
+        ZStack {
+            if state == .listening {
+                Circle()
+                    .fill(tint.opacity(0.25))
+                    .frame(width: 22 + CGFloat(audioLevel) * 26, height: 22 + CGFloat(audioLevel) * 26)
+                    .animation(.easeOut(duration: 0.08), value: audioLevel)
+            }
+            if state == .thinking {
+                ThinkingRing(color: tint)
+            }
+            Image(systemName: "cursorarrow")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(tint)
+                .shadow(color: tint.opacity(0.6), radius: 6)
+                .scaleEffect(state == .speaking && isBobbing ? 1.12 : 1.0)
+                .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: isBobbing)
+        }
+        .onAppear { isBobbing = true }
     }
 }
 
-struct BuddySpinner: View {
+/// The loading ring around the cursor. Its own view so the spin starts
+/// every time it appears.
+struct ThinkingRing: View {
     var color: Color
     @State private var isSpinning = false
 
     var body: some View {
         Circle()
-            .trim(from: 0.15, to: 0.85)
-            .stroke(AngularGradient(colors: [color.opacity(0), color], center: .center),
-                    style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-            .frame(width: 14, height: 14)
+            .trim(from: 0, to: 0.7)
+            .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            .frame(width: 26, height: 26)
             .rotationEffect(.degrees(isSpinning ? 360 : 0))
-            .shadow(color: color.opacity(0.6), radius: 6)
             .onAppear {
-                withAnimation(.linear(duration: 0.8).repeatForever(autoreverses: false)) { isSpinning = true }
+                withAnimation(.linear(duration: 0.9).repeatForever(autoreverses: false)) { isSpinning = true }
             }
     }
 }

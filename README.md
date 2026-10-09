@@ -6,8 +6,8 @@ It combines the best of [Clicky](https://www.heyclicky.com/) ([MIT source](https
 
 ### What came from Clicky
 
-- The glowing triangle buddy, its listening waveform and thinking spinner
-- The curved "swoop" flight to whatever it's pointing at (it turns to face where it's going)
+
+- The curved "swoop" flight to whatever it's pointing at 
 - Multi-monitor screenshots, with `[POINT:x,y:label:screen2]` to point on another display
 - The listen-only event tap for a reliable ⌃⌥ shortcut
 - Its well-tuned spoken-answer prompt (casual, short, ends by "planting a seed")
