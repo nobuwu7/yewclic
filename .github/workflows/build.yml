@@ -1,0 +1,34 @@
+# Compiles yewclic on a real Mac for every pull request and every push to
+# main, so a change that breaks the build shows a red ❌ before it's merged.
+# (The weekly Clicky-port routine runs on Linux and can't compile this app.)
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches: [main, stable]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Swift version
+        run: swift --version
+      - name: Build release app bundle
+        # Ad-hoc signed; same script you run locally.
+        run: scripts/build-app.sh
+      - name: Check the point-tag parser still works
+        run: |
+          { echo "import CoreGraphics"; cat Sources/Yewclic/PointTags.swift; cat <<'SWIFT'
+          let reply = "see the terminal? [POINT:400,300:terminal:screen2] then save [POINT:10,20:save] [POINT:none]"
+          let targets = PointTags.extractTargets(from: reply)
+          precondition(targets.count == 2, "expected 2 targets, got \(targets.count)")
+          precondition(targets[0].screenNumber == 2 && targets[0].label == "terminal", "screen tag parsing broke")
+          precondition(PointTags.removeTags(from: reply) == "see the terminal? then save", "tag stripping broke: \(PointTags.removeTags(from: reply))")
+          print("point tags OK")
+          SWIFT
+          } > "$RUNNER_TEMP/pointtags.swift"
+          swiftc -o "$RUNNER_TEMP/pointtags" "$RUNNER_TEMP/pointtags.swift" && "$RUNNER_TEMP/pointtags"
