@@ -146,17 +146,28 @@ final class BuddyOverlayController {
                         self.finishFlight()
                         return
                     }
-                    let linear = Double(frame) / Double(totalFrames)
-                    let t = linear * linear * (3 - 2 * linear)
-                    let inverse = 1 - t
-                    self.model.buddyPosition = CGPoint(
-                        x: inverse * inverse * start.x + 2 * inverse * t * control.x + t * t * destination.x,
-                        y: inverse * inverse * start.y + 2 * inverse * t * control.y + t * t * destination.y
+                    let linearProgress = CGFloat(frame) / CGFloat(totalFrames)
+                    self.model.buddyPosition = Self.pointOnFlightArc(
+                        start: start, control: control, end: destination, linearProgress: linearProgress
                     )
-                    self.model.flightScale = 1 + sin(linear * .pi) * 0.3
+                    self.model.flightScale = 1 + sin(linearProgress * .pi) * 0.3
                 }
             }
         }
+    }
+
+    /// Position along the quadratic bezier at `linearProgress` (0...1), eased
+    /// with smoothstep. Split into small steps with explicit types because
+    /// older Swift compilers time out type-checking it as one expression.
+    private static func pointOnFlightArc(start: CGPoint, control: CGPoint, end: CGPoint, linearProgress: CGFloat) -> CGPoint {
+        let easedProgress: CGFloat = linearProgress * linearProgress * (3 - 2 * linearProgress)
+        let inverse: CGFloat = 1 - easedProgress
+        let startWeight: CGFloat = inverse * inverse
+        let controlWeight: CGFloat = 2 * inverse * easedProgress
+        let endWeight: CGFloat = easedProgress * easedProgress
+        let x: CGFloat = startWeight * start.x + controlWeight * control.x + endWeight * end.x
+        let y: CGFloat = startWeight * start.y + controlWeight * control.y + endWeight * end.y
+        return CGPoint(x: x, y: y)
     }
 
     /// Stops any flight in progress and releases whoever is waiting on it.
