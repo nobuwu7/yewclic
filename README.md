@@ -93,6 +93,15 @@ release ──► transcribe ──► provider (screenshot or OCR text + questi
 
 Clicky's paid "agent" mode (doing tasks for you), dictation into other apps, Clicky's Claude-only precise pointing (Computer Use), its onboarding video, analytics and auto-updates, and a rebindable shortcut.
 
+## Contributors
+
+| | Who | Role |
+|---|---|---|
+| <img src="https://github.com/nobuwu7.png" width="40" alt=""> | **[Aubrey Yeong (@nobuwu7)](https://github.com/nobuwu7)** | Creator and maintainer: idea, direction, design choices and testing |
+| <img src="https://github.com/anthropics.png" width="40" alt=""> | **[Claude](https://claude.com/claude-code)** (Anthropic) | Co-developer: wrote and reviewed code with Aubrey in Claude Code, and runs the weekly Clicky update check |
+
+yewclic builds on [Clicky](https://github.com/farzaa/clicky) by [Farza (@farzaa)](https://github.com/farzaa), whose original commits are kept in this repo's history.
+
 ## License
 
 MIT. Portions adapted from [Clicky](https://github.com/farzaa/clicky) by Farza Majeed, MIT licensed (see `LICENSE`).
