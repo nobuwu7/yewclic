@@ -65,6 +65,12 @@ final class AppSettings: ObservableObject {
     /// When off it only appears while you're asking something.
     @Published var alwaysShowBuddy: Bool { didSet { save() } }
 
+    /// Set once the welcome guide is finished or skipped.
+    @Published var hasCompletedOnboarding: Bool { didSet { save() } }
+    /// The guide step to resume at, so a permission-forced relaunch doesn't
+    /// send the user back to the start. Empty means start from the beginning.
+    @Published var onboardingResumeStep: String { didSet { save() } }
+
     private init() {
         activeProvider = ProviderKind(rawValue: defaults.string(forKey: "activeProvider") ?? "") ?? .anthropic
         if let data = defaults.data(forKey: "providerSettings"),
@@ -83,6 +89,8 @@ final class AppSettings: ObservableObject {
         remoteSpeechVoice = defaults.string(forKey: "remoteSpeechVoice") ?? "alloy"
         rememberedTurnPairs = defaults.object(forKey: "rememberedTurnPairs") as? Int ?? 6
         alwaysShowBuddy = defaults.object(forKey: "alwaysShowBuddy") as? Bool ?? false
+        hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
+        onboardingResumeStep = defaults.string(forKey: "onboardingResumeStep") ?? ""
     }
 
     func settings(for kind: ProviderKind) -> ProviderSettings {
@@ -116,6 +124,8 @@ final class AppSettings: ObservableObject {
         defaults.set(remoteSpeechVoice, forKey: "remoteSpeechVoice")
         defaults.set(rememberedTurnPairs, forKey: "rememberedTurnPairs")
         defaults.set(alwaysShowBuddy, forKey: "alwaysShowBuddy")
+        defaults.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
+        defaults.set(onboardingResumeStep, forKey: "onboardingResumeStep")
     }
 }
 

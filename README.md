@@ -52,21 +52,60 @@ The default model names are only starting points. Use **Fetch models** in Settin
 
 A fully local, free setup: **Ollama + Apple Speech + macOS voice.**
 
-## Build and run
+## Install
 
-Needs macOS 14.2+ and the Swift toolchain (Xcode or Command Line Tools).
+1. Download `Yewclic-vX.Y.Z.zip` from [Releases](https://github.com/nobuwu7/yewclic/releases) and unzip it.
+2. Drag **Yewclic.app** into Applications.
+3. The app isn't notarised by Apple yet, so the first time, **right-click it → Open → Open**. (Or run `xattr -dr com.apple.quarantine /Applications/Yewclic.app`.)
+
+Needs macOS 14.2 or later.
+
+## First launch
+
+A short welcome guide walks you through everything:
+
+1. **Welcome:** what yewclic does and what it can see.
+2. **Brain:** pick *Free and private* (Ollama / LM Studio), *My Claude plan* (Claude Code) or *An API key*, then **Test it**.
+3. **Permissions:** Screen Recording, Accessibility, Microphone (and Speech Recognition for Apple's engine), each with the reason. If macOS needs a restart to apply one, the guide offers it and picks up where you left off.
+4. **Voice:** read answers out loud or not, choose a voice, and play a sample.
+5. **Try it:** hold ⌃⌥, ask something, let go. The guide shows it listening, thinking and answering.
+
+You can skip it and come back any time from **Yewclic → Welcome Guide…**.
+
+## Build from source
+
+Needs the Swift toolchain (Xcode or the Command Line Tools).
 
 ```bash
 scripts/build-app.sh
 open build/Yewclic.app
 ```
 
-On first launch Settings opens on **Permissions**. Grant Screen Recording, Accessibility (for the global shortcut), Microphone and Speech Recognition, then restart the app.
+```bash
+scripts/test.sh
+```
+
+To see every guide step without clicking through, render them to PNGs (light and dark):
+
+```bash
+build/Yewclic.app/Contents/MacOS/Yewclic --snapshot-onboarding ~/Desktop/yewclic-guide
+```
 
 > Ad-hoc signed builds get a new signature every build, so macOS may forget the permissions. To avoid that, sign with a stable identity:
 > `SIGN_IDENTITY="Apple Development: you@example.com" scripts/build-app.sh`
 
 API keys are stored in your Mac's Keychain, never in files.
+
+### Releasing
+
+Bump the version, push a tag, and GitHub builds a **draft** release with the zip attached:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+Release notes come from `release-notes/<tag>.md` when that file exists.
 
 ## How it works
 
@@ -87,6 +126,7 @@ release ──► transcribe ──► provider (screenshot or OCR text + questi
 | `Voice/` | Shortcut monitor, speech-to-text engines, text-to-speech engines |
 | `Overlay/BuddyOverlay.swift` | The click-through cursor buddy, flight animation and speech bubble |
 | `UI/CompanionPanelView.swift` | The panel under the menu bar icon |
+| `UI/Onboarding/` | The first-launch welcome guide (flow logic, screens, window) |
 | `UI/SettingsView.swift` | Settings window |
 
 ## Not (yet) included

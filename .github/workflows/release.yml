@@ -1,0 +1,43 @@
+# Push a version tag (e.g. `git tag v0.2.0 && git push origin v0.2.0`) and
+# this builds, tests and packages Yewclic.app, then opens a DRAFT GitHub
+# release with the zip attached. Review the notes and click Publish.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release (e.g. v0.2.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 25
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - name: Run unit tests
+        run: scripts/test.sh
+      - name: Build app
+        run: VERSION="${TAG#v}" scripts/build-app.sh
+      - name: Package
+        run: |
+          ditto -c -k --keepParent build/Yewclic.app "Yewclic-${TAG}.zip"
+          shasum -a 256 "Yewclic-${TAG}.zip" | tee "Yewclic-${TAG}.zip.sha256"
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES_FILE="release-notes/${TAG}.md"
+          if [[ -f "$NOTES_FILE" ]]; then NOTES=(--notes-file "$NOTES_FILE"); else NOTES=(--generate-notes); fi
+          gh release create "$TAG" "Yewclic-${TAG}.zip" "Yewclic-${TAG}.zip.sha256" \
+            --draft --title "yewclic ${TAG}" --target "$(git rev-parse HEAD)" "${NOTES[@]}"

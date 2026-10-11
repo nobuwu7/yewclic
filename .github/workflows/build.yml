@@ -1,34 +1,37 @@
-# Compiles yewclic on a real Mac for every pull request and every push to
-# main, so a change that breaks the build shows a red ❌ before it's merged.
-# (The weekly Clicky-port routine runs on Linux and can't compile this app.)
+# Compiles and tests yewclic on a real Mac for every pull request and every
+# push to main/yewclic/stable, so a change that breaks the app shows a red ❌
+# before it's merged. (The weekly Clicky-port routine runs on Linux and can't
+# compile this app, so it relies on this check.)
 name: Build
 
 on:
   pull_request:
   push:
-    branches: [main, stable]
+    branches: [main, yewclic, stable]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - name: Show Swift version
         run: swift --version
+      - name: Run unit tests
+        run: scripts/test.sh
       - name: Build release app bundle
-        # Ad-hoc signed; same script you run locally.
         run: scripts/build-app.sh
-      - name: Check the point-tag parser still works
-        run: |
-          { echo "import CoreGraphics"; cat Sources/Yewclic/PointTags.swift; cat <<'SWIFT'
-          let reply = "see the terminal? [POINT:400,300:terminal:screen2] then save [POINT:10,20:save] [POINT:none]"
-          let targets = PointTags.extractTargets(from: reply)
-          precondition(targets.count == 2, "expected 2 targets, got \(targets.count)")
-          precondition(targets[0].screenNumber == 2 && targets[0].label == "terminal", "screen tag parsing broke")
-          precondition(PointTags.removeTags(from: reply) == "see the terminal? then save", "tag stripping broke: \(PointTags.removeTags(from: reply))")
-          print("point tags OK")
-          SWIFT
-          } > "$RUNNER_TEMP/pointtags.swift"
-          swiftc -o "$RUNNER_TEMP/pointtags" "$RUNNER_TEMP/pointtags.swift" && "$RUNNER_TEMP/pointtags"
+      - name: Render the welcome guide
+        # Draws every onboarding step (light and dark) so reviewers can see
+        # UI changes without building locally.
+        continue-on-error: true
+        run: build/Yewclic.app/Contents/MacOS/Yewclic --snapshot-onboarding "$RUNNER_TEMP/onboarding"
+      - name: Upload welcome guide screenshots
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: onboarding-screenshots
+          path: ${{ runner.temp }}/onboarding
+          if-no-files-found: ignore

@@ -21,8 +21,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
     private var settingsWindow: NSWindow?
     private let companionPopover = NSPopover()
+    private lazy var onboarding = OnboardingWindowController(settings: settings, companion: companion)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Test hook: render the welcome guide to PNGs and quit, without
+        // starting the shortcut listener or touching the menu bar.
+        if let snapshotFolder = OnboardingSnapshotter.requestedOutputFolder {
+            OnboardingSnapshotter.renderAllSteps(to: snapshotFolder, settings: settings, companion: companion)
+            NSApp.terminate(nil)
+            return
+        }
+
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.image = NSImage(systemSymbolName: "cursorarrow.rays", accessibilityDescription: "Yewclic")
         item.button?.target = self
@@ -46,8 +55,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         installMainMenu()
         companion.start()
 
-        let needsSetup = !ScreenCapture.hasPermission || !PushToTalkMonitor.hasAccessibilityPermission || !MicrophonePermission.isGranted
-        if needsSetup { openSettings() }
+        if !settings.hasCompletedOnboarding {
+            onboarding.show()
+        } else if !ScreenCapture.hasPermission || !PushToTalkMonitor.hasAccessibilityPermission || !MicrophonePermission.isGranted {
+            openSettings()
+        }
     }
 
     @objc private func toggleCompanionPanel() {
@@ -64,7 +76,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // Clicking the Dock icon (with no windows open) brings up Settings.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        if !hasVisibleWindows { openSettings() }
+        if !hasVisibleWindows {
+            if settings.hasCompletedOnboarding { openSettings() } else { onboarding.show() }
+        }
         return true
     }
 
@@ -88,6 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu()
         addItem(to: appMenu, title: "Settings…", action: #selector(openSettings), key: ",")
+        addItem(to: appMenu, title: "Welcome Guide…", action: #selector(openWelcomeGuide), key: "")
         appMenu.addItem(.separator())
         appMenu.addItem(NSMenuItem(title: "Hide Yewclic", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
         addItem(to: appMenu, title: "Quit Yewclic", action: #selector(quit), key: "q")
@@ -166,6 +181,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    @objc private func openWelcomeGuide() {
+        onboarding.show(fromStart: true)
     }
 
     @objc private func quit() {

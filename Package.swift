@@ -8,6 +8,11 @@ let package = Package(
         .executableTarget(
             name: "Yewclic",
             path: "Sources/Yewclic"
-        )
+        ),
+        .testTarget(
+            name: "YewclicTests",
+            dependencies: ["Yewclic"],
+            path: "Tests/YewclicTests"
+        ),
     ]
 )
