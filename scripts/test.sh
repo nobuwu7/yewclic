@@ -14,4 +14,5 @@ if [[ "$(xcode-select -p)" == "/Library/Developer/CommandLineTools" && -d "$CLT_
                -Xlinker -rpath -Xlinker "$CLT_LIBS")
 fi
 
-swift test --scratch-path .build.nosync "${EXTRA_FLAGS[@]}"
+# The ${...+...} form keeps macOS bash 3.2 happy when the array is empty.
+swift test --scratch-path .build.nosync ${EXTRA_FLAGS[@]+"${EXTRA_FLAGS[@]}"}
