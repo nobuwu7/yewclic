@@ -1,8 +1,7 @@
-worker/node_modules/
-worker/.dev.vars
-.DS_Store
-*.xcuserstate
+.build/
 build/
-releases/
-.claude/
-coding-plans/
+*.app
+.DS_Store
+.swiftpm/
+.build.nosync/
+build/
